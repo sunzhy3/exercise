@@ -150,13 +150,14 @@ class ClusterSet(object):
         for c in self.members:
             result = result + str(c) + '\n'
         return result
-        
+
+#Mammal's teeth example
 class Mammal(Point):
     def __init__(self, name, originalAttrs, scaleAttrs = None):
         Point.__init__(self, name, originalAttrs, originalAttrs)
     def scaleFeatures(self, key):
         scaleDict = {'identity':[1, 1, 1, 1, 1, 1, 1, 1],
-                      '1/max':[1/3.0, 1/4.0, 1.0, 1/4.0, 1/4.0, 1/6.0, 1/6.0]}
+                      '1/max':[1/3.0, 1/4.0, 1.0, 1.0,  1/4.0, 1/4.0, 1/6.0, 1/6.0]}
         scaleFeatures = []
         features = self.getOriginalAttrs()
         for i in xrange(len(features)):
@@ -193,7 +194,8 @@ def buildMammalPoints(fName, scaling):
     return points
 
 #Use hierarchical clustering for mammal teeth
-def test0(numClusters = 2, scaling = 'identity', printSteps = False, printHistory = True):
+def hiearchicalTest(numClusters = 2, scaling = 'identity',
+                printSteps = False, printHistory = True):
     points = buildMammalPoints('/home/szy/exercise/mit6.00/mammalTeeth.txt', scaling)
     cS = ClusterSet(Mammal)
     for p in points:
@@ -217,9 +219,7 @@ def test0(numClusters = 2, scaling = 'identity', printSteps = False, printHistor
         print ' C' + str(index) + ':', c
         index += 1
 
-test0()
-
-def kmeans(points, k, cutoff, pointType, maxIters = 100, toPoint = False):
+def kmeans(points, k, cutoff, pointType, maxIters = 100, toPrint = False):
     #Get k randomly chosen initial centroids
     initialCentroids = random.sample(points, k)
     clusters = []
@@ -230,7 +230,7 @@ def kmeans(points, k, cutoff, pointType, maxIters = 100, toPoint = False):
     biggestChange = cutoff
     while biggestChange >= cutoff and numIters < maxIters:
         #Create a list contain k empty lists
-        newCluster = []
+        newClusters = []
         for i in xrange(k):
             newClusters.append([])
         for p in points:
@@ -238,7 +238,7 @@ def kmeans(points, k, cutoff, pointType, maxIters = 100, toPoint = False):
             smallestDistance = p.distance(clusters[0].getCentroid())
             index = 0
             for i in xrange(k):
-                distance = p.distance(clusters[0].getCentroid())
+                distance = p.distance(clusters[i].getCentroid())
                 if distance < smallestDistance:
                     smallestDistance = distance
                     index = i
@@ -246,8 +246,8 @@ def kmeans(points, k, cutoff, pointType, maxIters = 100, toPoint = False):
             newClusters[index].append(p)
         #update each cluster and record how much the centeoid has changed
         biggestChange = 0.0
-        for i in xrange(len(cluster)):
-            change = cluster[i].update(newClusters[i])
+        for i in xrange(len(clusters)):
+            change = clusters[i].update(newClusters[i])
             biggestChange = max(biggestChange, change)
         numIters += 1
     #calculate the coherence of the least coherent cluster
@@ -255,40 +255,94 @@ def kmeans(points, k, cutoff, pointType, maxIters = 100, toPoint = False):
     for c in clusters:
         for p in c.members():
             if p.distance(c.getCentroid()) >maxDist:
-                maxDist = p.diatance(c.getCentroid())
-    print 'Number of iterations = ', numIters, 'Max Diameter =', maxDist
+                maxDist = p.distance(c.getCentroid())
+    if toPrint:
+        print 'Number of iterations = ', numIters, 'Max Diameter =', maxDist
     return clusters, maxDist
+
+def kmeansTest(k = 2, cutoff = 0.0001, numTrials = 1,
+               printSteps = False, printHistory = False):
+    points = buildMammalPoints('/home/szy/exercise/mit6.00/mammalTeeth.txt', '1/max')
+    if printSteps:
+        print 'Points: '
+        for p in points:
+            attrs = p.getOriginalAttrs()
+            for i in xrange(len(attrs)):
+                attrs[i] = round(attrs[i], 2)
+            print ' ', p, attrs
+    numClusterings = 0
+    bestDiameter = None
+    while numClusterings <numTrials:
+        clusters, maxDiameter = kmeans(points, k, cutoff, Mammal)
+        if bestDiameter == None or maxDiameter < bestDiameter:
+            bestDiameter = maxDiameter
+            bestClustering = copy.deepcopy(clusters)
+        if printHistory:
+            print 'Cluster: '
+            for i in range(len(clusters)):
+                print ' C' + str(i) + ':' + cluster[i]
+        numClusterings += 1
+    print '\nBest Clustering'
+    for i in xrange(len(bestClustering)):
+        print ' C' + str(i) + ':', bestClustering[i]
 
 #US counties example
 class County(Point):
     #Interesting subsets of features
     #0 = don't use, 1 = use
-    noWealth = (('HomeVal', '0'), ('Income', '0'), ('Population', '1'),
-                ('Pop Change', '1'), ('Prcnt 65+', '1'), ('Below 18', '1'),
+    noWealth = (('HomeVal', '0'), ('Income', '0'),('Proverty', '0'),
+                ('Population', '1'), ('Pop Change', '1'),
+                ('Prcnt 65+', '1'), ('Below 18', '1'),
                 ('Prcnt Female', '1'), ('Prcnt HS Grad', '1'),
                 ('Prcnt College', '1'), ('Unemployed', '0'),
                 ('Prcnt Below 18', '1'), ('Life Expect', '1'),
                 ('Farm Acres', '1'))
-    wealthOnly = (('HomeVal', '1'), ('Income', '1'), ('Population', '1'),
-                ('Pop Change', '0'), ('Prcnt 65+', '0'), ('Below 18', '0'),
+    wealthOnly = (('HomeVal', '1'), ('Income', '1'), ('Proverty', '1'), 
+                ('Population', '1'), ('Pop Change', '0'),
+                ('Prcnt 65+', '0'), ('Below 18', '0'),
                 ('Prcnt Female', '0'), ('Prcnt HS Grad', '0'),
                 ('Prcnt College', '0'), ('Unemployed', '1'),
                 ('Prcnt Below 18', '0'), ('Life Expect', '0'),
                 ('Farm Acres', '0'))
-    education =  (('HomeVal', '0'), ('Income', '0'), ('Population', '0'),
-                ('Pop Change', '0'), ('Prcnt 65+', '0'), ('Below 18', '0'),
+    education =  (('HomeVal', '0'), ('Income', '0'),('Proverty', '0'),
+                ('Population', '0'),('Pop Change', '0'),
+                ('Prcnt 65+', '0'), ('Below 18', '0'),
                 ('Prcnt Female', '0'), ('Prcnt HS Grad', '1'),
                 ('Prcnt College', '1'), ('Unemployed', '0'),
                 ('Prcnt Below 18', '0'), ('Life Expect', '0'),
                 ('Farm Acres', '0'))
-    allFeatures = (('HomeVal', '1'), ('Income', '1'), ('Population', '1'),
-                ('Pop Change', '1'), ('Prcnt 65+', '1'), ('Below 18', '1'),
+    allFeatures = (('HomeVal', '1'), ('Income', '1'), ('Proverty', '1'), 
+                ('Population', '1'),('Pop Change', '1'),
+                ('Prcnt 65+', '1'), ('Below 18', '1'),
                 ('Prcnt Female', '1'), ('Prcnt HS Grad', '1'),
                 ('Prcnt College', '1'), ('Unemployed', '1'),
                 ('Prcnt Below 18', '1'), ('Life Expect', '1'),
                 ('Farm Acres', '1'))
-    filterNames = {'all':allfeatures, 'education':education,
-                  'wealthOnly':wealthOnly, 'noWealth':noWealth}
+    noEducation = (('HomeVal', '1'), ('Income', '0'),('Proverty', '1'),
+                ('Population', '1'),('Pop Change', '1'),
+                ('Prcnt 65+', '1'), ('Below 18', '1'),
+                ('Prcnt Female', '1'), ('Prcnt HS Grad', '0'),
+                ('Prcnt College', '0'), ('Unemployed', '0'),
+                ('Prcnt Below 18', '1'), ('Life Expect', '1'),
+                ('Farm Acres', '1'))
+    income = (('HomeVal', '0'), ('Income', '1'), ('Proverty', '1'), 
+                ('Population', '0'),('Pop Change', '0'),
+                ('Prcnt 65+', '0'), ('Below 18', '0'),
+                ('Prcnt Female', '0'), ('Prcnt HS Grad', '0'),
+                ('Prcnt College', '0'), ('Unemployed', '0'),
+                ('Prcnt Below 18', '0'), ('Life Expect', '0'),
+                ('Farm Acres', '0'))
+    gender = (('HomeVal', '0'), ('Income', '0'), ('Proverty', '1'), 
+                ('Population', '0'), ('Pop Change', '0'), 
+                ('Prcnt 65+', '0'), ('Below 18', '0'),
+                ('Prcnt Female', '1'), ('Prcnt HS Grad', '0'),
+                ('Prcnt College', '1'), ('Unemployed', '0'),
+                ('Prcnt Below 18', '0'), ('Life Expect', '0'),
+                ('Farm Acres', '0'))
+    filterNames = {'all':allFeatures, 'education':education,
+                  'wealthOnly':wealthOnly, 'noWealth':noWealth,
+                  'gender': gender, 'income': income,
+                  'noEducation': noEducation}
     attrFilter = None
     #override Point to construct subset of features
     def __init__(self, name, originalAttrs, normalizedAttrs = None,
@@ -298,12 +352,115 @@ class County(Point):
             filterSpec = County.filterNames[filterName]
             for f in filterSpec:
                 County.attrFilter += f[1]
-            Point.__init__(self, name, originalAttrs, normalizedAttrs)
-            features = []
-            for i in xrange(len(County.attrsFilter)):
-                if Conty.attrsFilter[i] == 1
-                    features.append(self)
-    
+        Point.__init__(self, name, originalAttrs, normalizedAttrs)
+        features = []
+        for i in xrange(len(County.attrFilter)):
+            if County.attrFilter[i] == '1':
+                features.append(self.getAttrs()[i])
+        self.features = features
+        #Override Point.distance to use only subset of features
+        def distance(self, other):
+            result = 0.0
+            for i in xrange(len(self.features)):
+                result += (self.features[i] - other.features[i]) ** 2
+            return result ** 0.5
+
+def readCountyData(fName, numEntries = 14):
+    dataFile = open(fName, 'r')
+    dataList = []
+    nameList = []
+    maxVals = pylab.array([0.0] * numEntries)
+    #Build unnormalized feature vector
+    for line in dataFile:
+        if len(line) == 0 or line[0] == '#':
+            continue
+        dataLine = string.split(line)
+        name = dataLine[0] + dataLine[1]
+        features = []
+        #Build features with numEntries features
+        for f in dataLine[2:]:
+            try:
+                f = float(f)
+                features.append(f)
+                if f > maxVals[len(features) - 1]:
+                    maxVals[len(features) - 1] = f
+            except ValueError:
+                name = name + f
+        if len(features) != numEntries:
+            continue
+        dataList.append(features)
+        nameList.append(name)
+    dataFile.close()
+    return nameList, dataList, maxVals
+
+def buildCountyPoints(fName, filterName = 'all', scale = True):
+    nameList, featureList, maxVals = readCountyData(fName)
+    points = []
+    for i in xrange(len(nameList)):
+        originalAttrs = pylab.array(featureList[i])
+        if scale:
+            normalizedAttrs = originalAttrs / pylab.array(maxVals)
+        else:
+            normalizedAttrs = originalAttrs
+        points.append(County(nameList[i], originalAttrs, normalizedAttrs, filterName))
+    return points
+
+def getAveIncome(cluster):
+    tot = 0.0
+    numElems = 0
+    for c in cluster.members():
+        tot += c.getOriginalAttrs()[1]
+        numElems += 1
+    if numElems > 0:
+        return tot / numElems
+    return 0.0
+
+def featureKmeansTest(k = 50, cutoff = 0.01, numTrials = 1, myHome = 'MAMiddlesex',
+                      filterName = 'all', printPoints = False, printClusters = False):
+    #Build the set of points
+    County.attrFilter = None
+    points = buildCountyPoints('/home/szy/exercise/mit6.00/counties.txt', filterName)
+    if printPoints:
+        print 'Points'
+        for p in points:
+            attrs = p.getAttrs()
+            for i in xrange(len(attrs)):
+                attrs[i] = round(attrs[i], 2)
+            print ' ', p, attrs
+    print 'Cluster on', filterName
+    numClusterings = 0
+    bestDistance = None
+    #Run k-means multiple times and choose best
+    while numClusterings < numTrials:
+        print 'Starting Clustering', numClusterings
+        clusters, maxSmallest = kmeans(points, k, cutoff, County)
+        numClusterings += 1
+        if bestDistance == None or maxSmallest < bestDistance:
+            bestDistance = maxSmallest
+            bestClustering = copy.deepcopy(clusters)
+        if printClusters:
+            print 'Clusters:'
+            for i in xrange(len(clusters)):
+                print ' C' + str(i) + ':', clusters[i]
+    for c in bestClustering:
+        incomes = []
+        for i in xrange(len(bestClustering)):
+            incomes.append(getAveIncome(bestClustering[i]))
+            if printClusters:
+                print ' C' + str(i) + ':', clusters[i]
+        pylab.hist(incomes)
+        pylab.xlabel('Average Income')
+        pylab.ylabel('Number of Clusters')
+        pylab.title(filterName)
+        if c.isIn(myHome):
+            print 'Home Cluster:', c
+            print 'Average Income of Home Cluster = ', round(getAveIncome(c), 0)
+
+#kmeansTest(numTrials = 100)
+#featureKmeansTest(k = 20, filterName = 'education', numTrials = 2)
+featureKmeansTest(k = 20, filterName = 'gender', numTrials = 2)
+
+pylab.show()
 
 
 
@@ -312,5 +469,3 @@ class County(Point):
 
 
 
-
-    
