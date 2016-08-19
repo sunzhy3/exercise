@@ -22,6 +22,6 @@ git commit -m "$message"
 #git fetch github
 #git merge --no-edit github/master
 git commit -m "merge $message"
-remote=`git remote`
-echo "push to:$remote"
+#remote=`git remote`
+#echo "push to:$remote"
 git push github $branchName
