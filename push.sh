@@ -24,4 +24,4 @@ git commit -m "$message"
 git commit -m "merge $message"
 remote=`git remote`
 echo "push to:$remote"
-git push lab $branchName
+git push github $branchName
