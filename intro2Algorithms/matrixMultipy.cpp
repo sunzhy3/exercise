@@ -11,11 +11,12 @@ void printMat(int **mat, int n) {
     }
 }
 
-void allocateMat(int **mat, int n) {
-    mat = new int*[n];
+int **allocateMat(int n) {
+    int **mat = new int*[n];
     for(int i = 0; i < n; i++) {
         mat[i] = new int[n];
     }
+    return mat;
 }
 
 void freeMat(int **mat, int n) {
@@ -38,7 +39,7 @@ int **addMat(int **A, int **B, int **C, int n) {
 int **subtractMat(int **A, int **B, int **C, int n) {
     for(int i = 0; i < n; i++) {
         for(int j = 0; j < n; j++) {
-            C[i][j] = A[i] - B[i][j];
+            C[i][j] = A[i][j] - B[i][j];
         }
     }
     return C;
@@ -61,7 +62,7 @@ int **subMat(int **A, int i, int j, int n) {
     else if(i == 1 && j == 2) {
         for(int k = 0; k < n; k++) {
             for(int m = 0; m < n; m++) {
-                subA[k][m] = A[k][m + n/2];
+                subA[k][m] = A[k][m + n];
             }
         }
     }
@@ -95,7 +96,7 @@ void mergeSubMat(int **sub11, int **sub12, int **sub21, int **sub22, int **mat, 
 }
 
 //simple matrix multipy
-int **simple(int **A, int **B, int n) {
+int **simple(int **A, int **B, int n, int toPrint = 1) {
        
     clock_t start = clock();
     int **C = new int*[n];
@@ -111,8 +112,10 @@ int **simple(int **A, int **B, int n) {
     }
     clock_t finish = clock();
     double totalTime = (double)(finish - start) * 1e03 / CLOCKS_PER_SEC;
-    cout<< "Running Time of Simple: "<< totalTime<< "ms"<< endl;
-
+    
+    if(toPrint) {
+        cout<< "Running Time of Simple: "<< totalTime<< "ms"<< endl;
+    }
     return C;
 }
 
@@ -124,14 +127,20 @@ int **divideMul(int **A, int **B, int n) {
     for(int i = 0; i < n; i++) {
         C[i] = new int[n];
     }
-    int **C11, **C12, **C21, **C22;
-    int **A11, **A12, **A21, **A22;
-    int **B11, **B12, **B21, **B22;
 
     if(n == 1) {
         C[0][0] = A[0][0] * B[0][0];
     }
     else {
+        int **C11, **C12, **C21, **C22;
+        int **A11, **A12, **A21, **A22;
+        int **B11, **B12, **B21, **B22;
+
+        C11 = allocateMat(n/2);
+        C12 = allocateMat(n/2);
+        C21 = allocateMat(n/2);
+        C22 = allocateMat(n/2);
+        
         A11 = subMat(A, 1, 1, n/2);
         A12 = subMat(A, 1, 2, n/2);
         A21 = subMat(A, 2, 1, n/2);
@@ -140,11 +149,12 @@ int **divideMul(int **A, int **B, int n) {
         B12 = subMat(B, 1, 2, n/2);
         B21 = subMat(B, 2, 1, n/2);
         B22 = subMat(B, 2, 2, n/2);
+
         addMat(divideMul(A11, B11, n/2),
                divideMul(A12, B21, n/2), C11, n/2);
         addMat(divideMul(A11, B12, n/2),
                divideMul(A12, B22, n/2), C12, n/2);
-        addMat(divideMul(A12, B11, n/2),
+        addMat(divideMul(A21, B11, n/2),
                divideMul(A22, B21, n/2), C21, n/2);
         addMat(divideMul(A21, B12, n/2),
                divideMul(A22, B22, n/2), C22, n/2);
@@ -184,8 +194,9 @@ int **strassenMul(int **A, int **B, int n) {
         C[i] = new int[n];
     }
 
-    if(n == 1) {
-        C[0][0] = A[0][0] * B[0][0];
+    if(n <= 32) {
+        //C[0][0] = A[0][0] * B[0][0];
+        C = simple(A, B, n, 0);
     }
     else {
         int **S1, **S2, **S3, **S4, **S5;
@@ -195,15 +206,12 @@ int **strassenMul(int **A, int **B, int n) {
         int **A11, **A12, **A21, **A22;
         int **B11, **B12, **B21, **B22;
         
-        allocateMat(S1, n/2);allocateMat(S2, n/2);allocateMat(S3, n/2);
-        allocateMat(S4, n/2);allocateMat(S5, n/2);allocateMat(S6, n/2);
-        allocateMat(S7, n/2);allocateMat(S8, n/2);allocateMat(S9, n/2);
-        allocateMat(S10, n/2);
-        allocateMat(C11, n/2);allocateMat(C12, n/2);allocateMat(C21, n/2);
-        allocateMat(C22, n/2);
-        //allocateMat(P1, n/2);allocateMat(P2, n/2);allocateMat(P3, n/2);
-        //allocateMat(P4, n/2);allocateMat(P5, n/2);allocateMat(P6, n/2);
-        //allocateMat(P7, n/2);
+        S1 = allocateMat(n/2);S2 = allocateMat(n/2);S3 = allocateMat(n/2);
+        S4 = allocateMat(n/2);S5 = allocateMat(n/2);S6 = allocateMat(n/2);
+        S7 = allocateMat(n/2);S8 = allocateMat(n/2);S9 = allocateMat(n/2);
+        S10 = allocateMat(n/2);
+        C11 = allocateMat(n/2);C12 = allocateMat(n/2);C21 = allocateMat(n/2);
+        C22 = allocateMat(n/2);
 
         A11 = subMat(A, 1, 1, n/2);
         A12 = subMat(A, 1, 2, n/2);
@@ -233,8 +241,7 @@ int **strassenMul(int **A, int **B, int n) {
         P6 = strassenMul(S7, S8, n/2);
         P7 = strassenMul(S9, S10, n/2);
 
-        addMat(subtractMat(addMat(P5, P4, C11, n/2),
-                           P2, C11, n/2), P6, C11, n/2);
+        addMat(subtractMat(addMat(P5, P4, C11, n/2),P2, C11, n/2), P6, C11, n/2);
         addMat(P1, P2, C12, n/2);
         addMat(P3, P4, C21, n/2);
         subtractMat(subtractMat(addMat(P5, P1, C22, n/2),
@@ -264,11 +271,13 @@ int **strassen(int **A, int **B, int n) {
     clock_t finish = clock();
     double totalTime = (double)(finish - start) * 1e03 / CLOCKS_PER_SEC;
     cout<< "Running Time of Srtassen: "<< totalTime<< "ms"<< endl;
-    return C
+    return C;
 }
+
+
 int main() {
 
-    int n = 256;
+    int n = 512;
     
     //initialise A and B
     int **A = new int*[n];
@@ -288,17 +297,21 @@ int main() {
     }
 
     //compute A * B
-    int **Cs = simple(A, B, n); 
-    int **Cd = divide(A, B, n);
+    int **sim = simple(A, B, n); 
+    //int **div = divide(A, B, n);
+    int **stn = strassen(A, B, n);
     
-    //printMat(C, N);
+    //printMat(stn, n);
 
     //free the memory
     for(int i = 0; i < n; i++) {
-        delete [] Cs[i];
-        delete [] Cd[i];
+        delete [] sim[i];
+        //delete [] div[i];
+        delete [] stn[i];
     }
-    delete [] Cs, Cd;
+    delete [] sim;
+    //delete [] div;
+    delete [] stn;
 
     return 0;
 }

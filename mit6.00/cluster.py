@@ -419,7 +419,7 @@ def featureKmeansTest(k = 50, cutoff = 0.01, numTrials = 1, myHome = 'MAMiddlese
                       filterName = 'all', printPoints = False, printClusters = False):
     #Build the set of points
     County.attrFilter = None
-    points = buildCountyPoints('/home/szy/exercise/mit6.00/counties.txt', filterName)
+    points = buildCountyPoints('/media/sunzy/My Passport/exercise/mit6.00/counties.txt', filterName)
     if printPoints:
         print 'Points'
         for p in points:
