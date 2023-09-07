@@ -62,12 +62,12 @@ def demo_basic(rank, world_size):
     optimizer = optim.SGD(ddp_model.parameters(), lr=0.001)
 
     for data in train_loader:
-        optimizer.zero_grad()
         x, y = data
 
         outputs = ddp_model(x)
         loss = loss_fn(outputs, y)
-
+        
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
