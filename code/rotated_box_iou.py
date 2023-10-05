@@ -7,18 +7,22 @@ def rotate(point, angle):
     rpy = -a_sin * point[0] + a_cos * point[1]
     return rpx, rpy
 
+def cross(a, b, c):
+    return (a[0] - c[0]) * (b[1] - c[1]) - (a[1] - c[1]) * (b[0] - c[0])
+
 def rbbox_to_corners(rbbox):
     # generate clockwise corners and rotate it clockwise
     # 顺时针方向返回角点位置
     cx, cy, x_d, y_d, angle = rbbox
-    a_cos = math.cos(angle)
-    a_sin = math.sin(angle)
+    # a_cos = math.cos(angle)
+    # a_sin = math.sin(angle)
     corners_x = [-x_d / 2, -x_d / 2, x_d / 2, x_d / 2]
     corners_y = [-y_d / 2, y_d / 2, y_d / 2, -y_d / 2]
     corners = [0] * 8
     for i in range(4):
-        corners[2 * i] = a_cos * corners_x[i] + a_sin * corners_y[i] + cx
-        corners[2 * i + 1] = -a_sin * corners_x[i] + a_cos * corners_y[i] + cy
+        rpx, rpy = rotate(corners_x[i], corners_y[i])
+        corners[2 * i] = rpx + cx
+        corners[2 * i + 1] = rpy + cy
     return corners
 
 
@@ -39,6 +43,38 @@ def point_in_quadrilateral(pt_x, pt_y, corners):
 
     return abab >= abap and abap >= 0 and adad >= adap and adap >= 0
 
+def point_in_quad(pt_x, pt_y, corners):
+    p = [pt_x, pt_y]
+    p1 = [corners[0], corners[1]]
+    p2 = [corners[2], corners[3]]
+    p3 = [corners[4], corners[5]]
+    p4 = [corners[6], corners[7]]
+    c1 = cross(p1, p2, p)
+    c2 = cross(p3, p4, p)
+    c3 = cross(p2, p3, p)
+    c4 = cross(p4, p1, p)
+    return c1 * c2 >= 0 and c3 * c4 >= 0
+
+def line_segment_inter(pts1, pts2, i, j):
+    a = [pts1[2 * i], pts1[2 * i + 1]]
+    b = [pts1[2 * ((i + 1) % 4)], pts1[2 * ((i + 1) % 4) + 1]]
+    c = [pts2[2 * j], pts2[2 * j + 1]]
+    d = [pts2[2 * ((j + 1) % 4)], pts2[2 * ((j + 1) % 4) + 1]]
+
+    area_abc = cross(a, b, c) / 2.0
+    area_abd = cross(a, b, d) / 2.0
+    if area_abc * area_abd > 0:
+        return False, [0, 0]
+
+    area_cda = cross(c, d, a) / 2.0
+    area_cdb = cross(c, d, b) / 2.0
+    if area_cda * area_cdb > 0:
+        return False, [0, 0]
+
+    t = area_cda / (area_abd - area_abc)
+    dx= t * (b[0] - a[0])
+    dy= t * (b[1] - a[1])
+    return [a[0] + dx, a[0] + dy]
 
 def line_segment_intersection(pts1, pts2, i, j):
     # pts1, pts2 为corners
@@ -110,7 +146,7 @@ def sort_vertex_in_convex_polygon(int_pts, num_of_inter):
 
 def area(int_pts, num_of_inter):
     def _trangle_area(a, b, c):
-        return abs((a[0] - c[0]) * (b[1] - c[1]) - (a[1] - c[1]) * (b[0] - c[0])) / 2.0
+        return abs(corss(a, b, c)) / 2.0
 
     area_val = 0.0
     for i in range(num_of_inter - 2):
